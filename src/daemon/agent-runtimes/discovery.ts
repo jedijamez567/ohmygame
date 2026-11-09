@@ -149,6 +149,10 @@ export async function resolveBinary(
       seen.add(target);
       found.push({
         ...candidate,
+        // Codex re-runs its own executable under a restricted macOS sandbox
+        // that cannot read through links outside it, such as
+        // ~/.local/bin/codex, so run the installation itself.
+        ...(id === "codex-cli" ? { path: target } : {}),
         signature: `${candidate.path}:${info.size}:${info.mtimeMs}`,
       });
     } catch {

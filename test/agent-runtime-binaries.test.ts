@@ -4,6 +4,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -25,7 +26,10 @@ let restoreBundled: () => void;
 const services: AgentRuntimeService[] = [];
 
 beforeEach(async () => {
-  root = await mkdtemp(path.join(os.tmpdir(), "ohmygame-discovery-"));
+  // Canonical, since Codex paths resolve through links such as macOS /var.
+  root = await realpath(
+    await mkdtemp(path.join(os.tmpdir(), "ohmygame-discovery-")),
+  );
   const home = path.join(root, "home");
   await mkdir(home);
   shellPathFile = path.join(root, "shell-path");
@@ -135,8 +139,9 @@ it("deduplicates symlinks and skips directories and non-executable files", async
   const link = path.join(bin, process.platform === "win32" ? "codex.exe" : "codex");
   await symlink(app, link);
   vi.stubEnv("PATH", bin);
+  // Codex resolves to the installation, since its sandbox cannot follow the link.
   expect(await resolveBinary("codex-cli")).toMatchObject({
-    path: link,
+    path: app,
     source: "path",
   });
   if (process.platform !== "win32") {
